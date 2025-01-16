@@ -4,7 +4,7 @@
 Los navegadores modernos no aceptan de manera nativa el acceso a la cámara web y otros dispositivos si no se tienen certificados SSL de seguridad (HTTPS). Como nuestras webs son internas, la alternativa con la que contamos es un servidor proxy que redirija las consultas como si vinieran del link http://localhost/#/{dirección}.
 
 Al ser una dirección localhost, el navegador permite el uso de la cámara por detectar que es un entorno de desarrollo.
-
+Es importante considerar que hay que cambiar del archivo .js las rutas que se están usando con el .env
 
 ## Dependencias
 
