@@ -10,7 +10,7 @@ Manual de instrucciones para poder usar correctamente la app
 
 5- Abrimos el "Símbolo de sistema" y colocamos "npm install express http-proxy-middleware"
 
-6- Luego de instalar, instalaremos PM2 con "npm install -g pm2" y CORS "npm install cors"
+6- Luego de instalar, instalaremos PM2 con "npm install -g pm2", CORS "npm install cors" y DOTENV "npm install dotenv"
 
 7- Si ya se hicieron todos estos pasos, solo modificamos la dirección de la url dentrl del .bat para ejecutar el servidor
 
