@@ -1,0 +1,21 @@
+Manual de instrucciones para poder usar correctamente la app
+
+1- Entrar en https://nodejs.org/es/download y descargar el instalador de la aplicación NODE.js
+
+2- Realizar la instalación de dicha aplicación
+
+3- Se puede chequear si se instaló bien entrando en "Símbolo de sistema" y colocando "node -v". Dependiendo la versión te tiene que salir algo asi: "v18.16.0" (esa es la que tengo yo, el número va a ser distinto según el caso. Lo importante es que aparezca)
+
+4- Una vez instalado, buscamos en el compartido: https://drive.google.com/drive/folders/1_mX_nzBm6xmRPClFbk4QZdBYqD-87i0s?usp=sharing (o ver quien tiene el link), bajamos la carpeta "proxy-server"
+
+5- Abrimos el "Símbolo de sistema" y colocamos "npm install express http-proxy-middleware"
+
+6- Luego de instalar, instalaremos PM2 con "npm install -g pm2" y CORS "npm install cors"
+
+7- Si ya se hicieron todos estos pasos, solo modificamos la dirección de la url dentrl del .bat para ejecutar el servidor
+
+//ADICIONAL
+Lo ideal, es que es servidor se ejecute al arranque de la pc. Por lo que será necesario:
+a- Tecla WIN + R
+b- Escribirmos "Shell:startup"
+c- Copiamos un acceso directo del .bat para que se inicie al prender la PC
