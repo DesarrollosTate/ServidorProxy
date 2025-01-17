@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 const { execSync } = require('child_process');
+const net = require('net');
 require('dotenv').config();
 
 const app = express();
@@ -12,25 +13,89 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Configuración de credenciales
+// CONFIGURACIÓN DE CREDENCIALES PARA ACCEDER A LAS CARPETAS
 const networkConfig = {
     username: process.env.USUARIO_CARPETA,
     password: process.env.PASS_CARPETA,
     share: process.env.RUTA_CARPETA
 };
 
-// Función para montar el recurso de red
+//VERIFICAMOS SI EL PUERTO ESTÁ DISPONIBLE
+const isPortAvailable = (port) => {
+    //CREAMOS LA PROMESA
+    return new Promise((resolve) => {
+        //CREAMOS UN SERVIDOR
+        const server = net.createServer();
+        
+        //MANEJA EL ERROR DEL SERVIDOR
+        server.once('error', () => {
+            resolve(false); //DEVUELVE FALSE
+        });
+        
+        //ESCUCHANDO EL SERVIDOR
+        server.once('listening', () => {
+            server.close(); //CIERRA EL SERVIDOR
+            resolve(true); //DEVUELVE TRUE
+        });
+        
+        //INTENTA ESCUCHAR EL PUERTO ESPECIFICADO
+        server.listen(port);
+    });
+};
+
+//FUNCIÓN PARA BUSCAR UN PUERTO DISPONIBLE
+const findAvailablePort = async (startPort, maxPort = 9000) => {
+    //ITERA SOBRE EL PUERTO DESDE EL PRIMERO HASTA EL MÁXIMO DISPONIBLE
+    for (let port = startPort; port <= maxPort; port++) {
+        //LLAMA A LA FUNCIÓN PARA VERIFICAR SI EL PUERTO ESTÁ DISPONIBLE
+        if (await isPortAvailable(port)) {
+            return port; //DEVUELVE EL PUERTO DISPONIBLE SI ES TRUE
+        }
+    }
+    //RETORNA EL ERROR
+    throw new Error('No se encontró ningún puerto disponible');
+};
+
+//INICIA EL SERVIDOR BSUCANDO EL PUERTO
+const startServer = async (startPort = 80, maxPort = 9000) => {
+    try {
+        const port = await findAvailablePort(startPort, maxPort); //BUSCAMOS PUERTO DISPONIBLE
+        //UNA VEZ LO ENCUENTRA, ESCUCHAMOS EL SERVIDOR CON LA CONFIGURACIÓN
+        const server = app.listen(port, 'localhost', () => {
+            console.log(`Servidor iniciado exitosamente en el puerto ${port}`);
+            console.log(`Proxy corriendo en http://localhost:${port}/#/tate/tarjeta/fotos`);
+        });
+
+        //MANEJO DE ERRORES
+        server.on('error', async (err) => {
+            //SI EL PUERTO YA ESTÁ EN USO
+            if (err.code === 'EADDRINUSE') {
+                console.error(`El puerto ${port} está en uso. Intentando en el siguiente puerto...`);
+                startServer(port + 1, maxPort); // INTENTA CON EL SIGUIENTE PUERTO
+            }   //OTRO ERROR
+                else {
+                console.error('Error al iniciar el servidor:', err);
+                process.exit(1);
+            }
+        });
+    } catch (error) {
+        //ERROR AL BUSCAR DIRECTAMENTE
+        console.error('Error al buscar un puerto disponible:', error);
+        process.exit(1);
+    }
+};
+
+//FUNCIÓN PARA CONECTARNOS A LA CARPETA
 function connectToNetworkShare() {
     try {
-        // Desmontar primero si existe una conexión previa
+        //INTENTAMOS DESMONTAR
         try {
             execSync(`net use ${networkConfig.share} /delete /y`);
-        } catch (e) {
-            // Ignorar error si no estaba montado
-        }
+        } catch (e) {} //IGNORAMOS SI NO ESTABA MONTADO
+        //MONTAMOS LA CONEXIÓN
         execSync(
             `net use ${networkConfig.share} /user:${networkConfig.username} ${networkConfig.password}`,
-            { stdio: 'pipe' } // Para no mostrar la contraseña en logs
+            { stdio: 'pipe' } //PARA NO MOSTRAR LA CONTRASEÑA EN LOS LOGS
         );
 
         console.log('Conexión a recurso de red establecida');
@@ -41,14 +106,18 @@ function connectToNetworkShare() {
     }
 }
 
-
-// Intentar conectar al inicio
+//INICIA EL SERVIDOR Y CONECTA EL RECURSO DE RED
+startServer();
 connectToNetworkShare();
 
-// Reconectar periódicamente para mantener la conexión
-setInterval(connectToNetworkShare, 1000 * 60 * 30); // Cada 30 minutos
+//RECONECTAR PERIÓDICAMENTE PARA MANTENER LA CONEXIÓN
+setInterval(connectToNetworkShare, 1000 * 60 * 30); //30 MIN
 
-//ENDPOINT PARA GUARDAR LA FOTO
+
+//*<--------------------------------------------------------------------------------------------------->
+//*ENPOINTS
+
+//? GUARDAR LA FOTO X DNI
 app.post('/api/fotos/:dni', (req, res) => {
     const dni = req.params.dni;
     const { fotoBase64 } = req.body;
@@ -115,7 +184,7 @@ app.post('/api/fotos/:dni', (req, res) => {
     }
 });
 
-//ENDPOINT PARA TRAER LA FOTO
+//* OBTENER LA FOTO X DNI
 app.get('/api/fotos/:dni', (req, res) => {
     const dni = req.params.dni;
     
@@ -172,7 +241,7 @@ app.get('/api/fotos/:dni', (req, res) => {
     });
 });
 
-// Configuración del proxy
+//CONFIGURACIÓN DEL PROXY
 app.use('/', createProxyMiddleware({
     target: process.env.RUTA_APP,
     changeOrigin: true,
@@ -187,11 +256,6 @@ app.use('/', createProxyMiddleware({
 }));
 
 app.use(express.json());
-
-app.listen(80, 'localhost', () => {
-    console.log('Proxy corriendo en http://localhost/#/tate/tarjeta/fotos');
-    console.log('Endpoint de búsqueda: http://localhost/api/fotos/:dni');
-});
 
 process.on('uncaughtException', (err) => {
     console.error('Error no manejado:', err);
